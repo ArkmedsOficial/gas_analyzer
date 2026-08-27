@@ -7,7 +7,7 @@
 
 ---
 :project:
-  :name: "Example Project"
+  :name: "Gas Analyzer Firmware"
 
   # how to use ceedling. If you're not sure, leave this as `gem` and `?`
   :which_ceedling: gem
@@ -19,7 +19,7 @@
   :use_backtrace: :simple        # options are :none, :simple, or :gdb
 
   # tweak the way ceedling handles automatic tasks
-  :build_root: build
+  :build_root: build_tests
   :test_file_prefix: test_
   :default_tasks:
     - test:all
@@ -100,9 +100,9 @@
     - +:test/**
     - -:test/support
   :source:
-    - src/**
+    - app/**
   :include:
-    - src/** # In simple projects, this entry often duplicates :source
+    - app/**
   :support:
     - test/support
   :libraries: []
