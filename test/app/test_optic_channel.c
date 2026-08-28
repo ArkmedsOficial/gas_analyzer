@@ -105,6 +105,61 @@ void test_optic_channel_process_should_detect_out_of_phase_signal(void)
     TEST_ASSERT_EQUAL(OPTIC_ERROR_OUT_OF_PHASE, optic_channel_process(&frame, &drive, &result));
 }
 
+/**
+ * @brief The detector/ADC is characterized by a saturation threshold; a
+ * peak reaching or exceeding it means the channel is overloaded and its
+ * amplitude cannot be trusted.
+ */
+void test_optic_channel_process_should_detect_saturation_when_peak_reaches_threshold(void)
+{
+    uint16_t samples[10] = {900, 920, 910, 905, 895, 100, 110, 90, 105, 95};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .saturation_threshold = 920};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_SATURATION, optic_channel_process(&frame, &drive, &result));
+}
+
+void test_optic_channel_process_should_return_ok_when_peak_is_below_saturation_threshold(void)
+{
+    uint16_t samples[10] = {900, 920, 910, 905, 895, 100, 110, 90, 105, 95};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .saturation_threshold = 1000};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_process(&frame, &drive, &result));
+    TEST_ASSERT_EQUAL_UINT16(920, result.peak_value);
+}
+
+/**
+ * @brief A saturation_threshold of 0 means the channel's saturation limit
+ * is not configured, so the check is disabled and no peak value flags it.
+ */
+void test_optic_channel_process_should_not_check_saturation_when_threshold_is_disabled(void)
+{
+    uint16_t samples[10] = {60000, 61000, 60500, 60200, 60100, 100, 110, 90, 105, 95};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .saturation_threshold = 0};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_process(&frame, &drive, &result));
+}
+
+/**
+ * @brief When a signal is both saturated and out of phase, saturation must
+ * be reported: a pinned/overloaded reading cannot be trusted to locate a
+ * meaningful peak position in the first place.
+ */
+void test_optic_channel_process_should_prioritize_saturation_over_out_of_phase(void)
+{
+    uint16_t samples[10] = {100, 110, 90, 105, 95, 900, 920, 910, 905, 895};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .saturation_threshold = 920};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_SATURATION, optic_channel_process(&frame, &drive, &result));
+}
+
 void test_optic_channel_apply_calibration_should_return_error_when_calibration_is_null(void)
 {
     optic_channel_calibrated_result_t result;

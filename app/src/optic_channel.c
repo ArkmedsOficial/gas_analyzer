@@ -32,6 +32,9 @@ optic_status_t optic_channel_process(const optic_channel_frame_t *frame,
             valley_value = frame->samples[i];
     }
 
+    if (frame->saturation_threshold != 0 && peak_value >= frame->saturation_threshold)
+        return OPTIC_ERROR_SATURATION;
+
     if (peak_index >= on_samples)
         return OPTIC_ERROR_OUT_OF_PHASE;
 
