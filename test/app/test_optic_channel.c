@@ -104,3 +104,83 @@ void test_optic_channel_process_should_detect_out_of_phase_signal(void)
 
     TEST_ASSERT_EQUAL(OPTIC_ERROR_OUT_OF_PHASE, optic_channel_process(&frame, &drive, &result));
 }
+
+void test_optic_channel_apply_calibration_should_return_error_when_calibration_is_null(void)
+{
+    optic_channel_calibrated_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_NULL_POINTER, optic_channel_apply_calibration(NULL, 600, &result));
+}
+
+void test_optic_channel_apply_calibration_should_return_error_when_result_is_null(void)
+{
+    optic_channel_calibration_t calibration = {.reference_amplitude = 1000, .gain_calibration_x1000 = 1000};
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_NULL_POINTER, optic_channel_apply_calibration(&calibration, 600, NULL));
+}
+
+void test_optic_channel_apply_calibration_should_return_error_when_reference_amplitude_is_zero(void)
+{
+    optic_channel_calibration_t calibration = {.reference_amplitude = 0, .gain_calibration_x1000 = 1000};
+    optic_channel_calibrated_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_INVALID_PARAM, optic_channel_apply_calibration(&calibration, 600, &result));
+}
+
+void test_optic_channel_apply_calibration_should_return_error_when_gain_calibration_is_zero(void)
+{
+    optic_channel_calibration_t calibration = {.reference_amplitude = 1000, .gain_calibration_x1000 = 0};
+    optic_channel_calibrated_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_INVALID_PARAM, optic_channel_apply_calibration(&calibration, 600, &result));
+}
+
+/**
+ * @brief Reference signal fully applied: a raw amplitude equal to the
+ * channel's reference (established under a known, gas-free condition)
+ * yields full transmittance (1000/1000 = 100%).
+ */
+void test_optic_channel_apply_calibration_should_apply_reference_signal_at_full_transmittance(void)
+{
+    optic_channel_calibration_t calibration = {.reference_amplitude = 1000, .gain_calibration_x1000 = 1000};
+    optic_channel_calibrated_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_apply_calibration(&calibration, 1000, &result));
+    TEST_ASSERT_EQUAL_UINT16(1000, result.compensated_amplitude);
+    TEST_ASSERT_EQUAL_UINT16(1000, result.signal_ratio_x1000);
+}
+
+/**
+ * @brief Reference signal applied to an attenuated reading (gas present):
+ * 600 out of a 1000 reference is 60% transmittance.
+ */
+void test_optic_channel_apply_calibration_should_apply_reference_signal_at_partial_transmittance(void)
+{
+    optic_channel_calibration_t calibration = {.reference_amplitude = 1000, .gain_calibration_x1000 = 1000};
+    optic_channel_calibrated_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_apply_calibration(&calibration, 600, &result));
+    TEST_ASSERT_EQUAL_UINT16(600, result.compensated_amplitude);
+    TEST_ASSERT_EQUAL_UINT16(600, result.signal_ratio_x1000);
+}
+
+/**
+ * @brief Two channels with the same true physical amplitude (600) but
+ * different hardware gain must produce the same compensated amplitude and
+ * signal ratio once the per-channel gain deviation is compensated: a +25%
+ * gain deviation (raw 750) is corrected by an 800/1000 factor down to 600,
+ * matching a channel with no gain deviation reading 600 directly.
+ */
+void test_optic_channel_apply_calibration_should_compensate_gain_deviation_between_channels(void)
+{
+    optic_channel_calibration_t calibration_without_deviation = {.reference_amplitude = 1000, .gain_calibration_x1000 = 1000};
+    optic_channel_calibration_t calibration_with_deviation = {.reference_amplitude = 1000, .gain_calibration_x1000 = 800};
+    optic_channel_calibrated_result_t result_without_deviation;
+    optic_channel_calibrated_result_t result_with_deviation;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_apply_calibration(&calibration_without_deviation, 600, &result_without_deviation));
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_apply_calibration(&calibration_with_deviation, 750, &result_with_deviation));
+
+    TEST_ASSERT_EQUAL_UINT16(result_without_deviation.compensated_amplitude, result_with_deviation.compensated_amplitude);
+    TEST_ASSERT_EQUAL_UINT16(result_without_deviation.signal_ratio_x1000, result_with_deviation.signal_ratio_x1000);
+}

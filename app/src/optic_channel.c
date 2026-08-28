@@ -41,3 +41,27 @@ optic_status_t optic_channel_process(const optic_channel_frame_t *frame,
 
     return OPTIC_OK;
 }
+
+static uint16_t optic_saturate_to_uint16(uint32_t value)
+{
+    return (value > UINT16_MAX) ? UINT16_MAX : (uint16_t)value;
+}
+
+optic_status_t optic_channel_apply_calibration(const optic_channel_calibration_t *calibration,
+                                                uint16_t raw_amplitude,
+                                                optic_channel_calibrated_result_t *out)
+{
+    if (calibration == NULL || out == NULL)
+        return OPTIC_ERROR_NULL_POINTER;
+
+    if (calibration->reference_amplitude == 0 || calibration->gain_calibration_x1000 == 0)
+        return OPTIC_ERROR_INVALID_PARAM;
+
+    uint32_t compensated_amplitude = ((uint32_t)raw_amplitude * calibration->gain_calibration_x1000) / 1000U;
+    out->compensated_amplitude = optic_saturate_to_uint16(compensated_amplitude);
+
+    uint32_t signal_ratio_x1000 = ((uint32_t)out->compensated_amplitude * 1000U) / calibration->reference_amplitude;
+    out->signal_ratio_x1000 = optic_saturate_to_uint16(signal_ratio_x1000);
+
+    return OPTIC_OK;
+}

@@ -38,4 +38,27 @@ optic_status_t optic_channel_process(const optic_channel_frame_t *frame,
                                       const optic_ir_drive_t *drive,
                                       optic_channel_result_t *out);
 
+/* Per-channel calibration, dependent on the physical characterization of
+ * the sensor and must remain configurable (never hardcoded into the
+ * processing logic). */
+typedef struct {
+    /* Amplitude captured under a known reference condition (e.g. zero-gas),
+     * i.e. this channel's I0. */
+    uint16_t reference_amplitude;
+    /* Multiplicative correction for this channel's gain deviation, scaled
+     * by 1000 (1000 = no correction). */
+    uint16_t gain_calibration_x1000;
+} optic_channel_calibration_t;
+
+typedef struct {
+    /* Raw amplitude after gain-deviation correction. */
+    uint16_t compensated_amplitude;
+    /* compensated_amplitude / reference_amplitude (I/I0), scaled by 1000. */
+    uint16_t signal_ratio_x1000;
+} optic_channel_calibrated_result_t;
+
+optic_status_t optic_channel_apply_calibration(const optic_channel_calibration_t *calibration,
+                                                uint16_t raw_amplitude,
+                                                optic_channel_calibrated_result_t *out);
+
 #endif /* OPTIC_CHANNEL_H */
