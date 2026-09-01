@@ -160,6 +160,61 @@ void test_optic_channel_process_should_prioritize_saturation_over_out_of_phase(v
     TEST_ASSERT_EQUAL(OPTIC_ERROR_SATURATION, optic_channel_process(&frame, &drive, &result));
 }
 
+/**
+ * @brief The detector is characterized by a minimum expected peak-to-valley
+ * amplitude; an amplitude below it means the channel signal is absent (e.g.
+ * disconnected sensor, obstructed optical path, or IR source not driving).
+ */
+void test_optic_channel_process_should_detect_no_signal_when_amplitude_is_below_threshold(void)
+{
+    uint16_t samples[10] = {505, 508, 506, 504, 503, 500, 502, 499, 501, 500};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .min_signal_threshold = 20};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_NO_SIGNAL, optic_channel_process(&frame, &drive, &result));
+}
+
+void test_optic_channel_process_should_return_ok_when_amplitude_is_at_or_above_no_signal_threshold(void)
+{
+    uint16_t samples[10] = {510, 520, 515, 512, 508, 500, 502, 501, 503, 505};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .min_signal_threshold = 20};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_process(&frame, &drive, &result));
+    TEST_ASSERT_EQUAL_UINT16(20, result.amplitude);
+}
+
+/**
+ * @brief A min_signal_threshold of 0 means the channel's no-signal limit is
+ * not configured, so the check is disabled and no amplitude flags it.
+ */
+void test_optic_channel_process_should_not_check_no_signal_when_threshold_is_disabled(void)
+{
+    uint16_t samples[10] = {500, 501, 500, 500, 500, 500, 500, 500, 500, 500};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .min_signal_threshold = 0};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_process(&frame, &drive, &result));
+}
+
+/**
+ * @brief When a signal is both below the no-signal threshold and out of
+ * phase, no-signal must be reported: without a reliable peak amplitude, the
+ * peak's position within the frame cannot be trusted either.
+ */
+void test_optic_channel_process_should_prioritize_no_signal_over_out_of_phase(void)
+{
+    uint16_t samples[10] = {500, 502, 499, 501, 500, 505, 508, 506, 504, 503};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000, .min_signal_threshold = 20};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_NO_SIGNAL, optic_channel_process(&frame, &drive, &result));
+}
+
 void test_optic_channel_apply_calibration_should_return_error_when_calibration_is_null(void)
 {
     optic_channel_calibrated_result_t result;

@@ -8,7 +8,8 @@ typedef enum {
     OPTIC_ERROR_NULL_POINTER,
     OPTIC_ERROR_INVALID_PARAM,
     OPTIC_ERROR_OUT_OF_PHASE,
-    OPTIC_ERROR_SATURATION
+    OPTIC_ERROR_SATURATION,
+    OPTIC_ERROR_NO_SIGNAL
 } optic_status_t;
 
 /* Raw sample buffer for a single detector channel, spanning at least one
@@ -23,6 +24,12 @@ typedef struct {
      * characterization. A peak sample reaching or exceeding this value is
      * reported as OPTIC_ERROR_SATURATION. A value of 0 disables the check. */
     uint16_t saturation_threshold;
+    /* Minimum expected peak-to-valley amplitude, dependent on the sensor's
+     * physical characterization. An amplitude below this value means the
+     * channel signal is absent (e.g. disconnected sensor, obstructed optical
+     * path, or IR source not driving), reported as OPTIC_ERROR_NO_SIGNAL.
+     * A value of 0 disables the check. */
+    uint16_t min_signal_threshold;
 } optic_channel_frame_t;
 
 /* Expected timing of the IR emitter drive cycle, used to locate the

@@ -35,12 +35,17 @@ optic_status_t optic_channel_process(const optic_channel_frame_t *frame,
     if (frame->saturation_threshold != 0 && peak_value >= frame->saturation_threshold)
         return OPTIC_ERROR_SATURATION;
 
+    uint16_t amplitude = (uint16_t)(peak_value - valley_value);
+
+    if (frame->min_signal_threshold != 0 && amplitude < frame->min_signal_threshold)
+        return OPTIC_ERROR_NO_SIGNAL;
+
     if (peak_index >= on_samples)
         return OPTIC_ERROR_OUT_OF_PHASE;
 
     out->peak_value = peak_value;
     out->valley_value = valley_value;
-    out->amplitude = (uint16_t)(peak_value - valley_value);
+    out->amplitude = amplitude;
 
     return OPTIC_OK;
 }
