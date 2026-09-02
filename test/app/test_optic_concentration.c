@@ -96,3 +96,47 @@ void test_optic_concentration_calculate_should_depend_on_configured_absorption_c
     TEST_ASSERT_UINT32_WITHIN(1, 20000, result_weaker.concentration_pct_x1000);
     TEST_ASSERT_UINT32_WITHIN(1, 10000, result_stronger.concentration_pct_x1000);
 }
+
+/**
+ * @brief Lower range extreme required by DD-1097: a channel/agent pairing
+ * with absorption_constant_x1000=48 and a signal_ratio_x1000 of 989
+ * (T=0.989) corresponds to exactly 0.1% concentration.
+ */
+void test_optic_concentration_calculate_should_compute_lower_range_extreme_of_0_1_percent(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 48};
+    optic_concentration_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 989, &result));
+    TEST_ASSERT_EQUAL_UINT32(100, result.concentration_pct_x1000);
+}
+
+/**
+ * @brief Upper range extreme required by DD-1097: with the same absorption
+ * constant used elsewhere (0.05 absorbance/%), a signal_ratio_x1000 of 100
+ * (T=0.1) corresponds to exactly 20% concentration.
+ */
+void test_optic_concentration_calculate_should_compute_upper_range_extreme_of_20_percent(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 50};
+    optic_concentration_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 100, &result));
+    TEST_ASSERT_EQUAL_UINT32(20000, result.concentration_pct_x1000);
+}
+
+/**
+ * @brief Repeating the exact same input conditions must always produce the
+ * exact same result: the calculation has no hidden/global state.
+ */
+void test_optic_concentration_calculate_should_be_repeatable_for_identical_input(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 50};
+    optic_concentration_result_t first_result;
+    optic_concentration_result_t second_result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 250, &first_result));
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 250, &second_result));
+
+    TEST_ASSERT_EQUAL_UINT32(first_result.concentration_pct_x1000, second_result.concentration_pct_x1000);
+}

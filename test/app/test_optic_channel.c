@@ -215,6 +215,26 @@ void test_optic_channel_process_should_prioritize_no_signal_over_out_of_phase(vo
     TEST_ASSERT_EQUAL(OPTIC_ERROR_NO_SIGNAL, optic_channel_process(&frame, &drive, &result));
 }
 
+/**
+ * @brief Repeating the exact same input conditions must always produce the
+ * exact same result: the processing has no hidden/global state.
+ */
+void test_optic_channel_process_should_be_repeatable_for_identical_input(void)
+{
+    uint16_t samples[10] = {900, 920, 910, 905, 895, 100, 110, 90, 105, 95};
+    optic_channel_frame_t frame = {.samples = samples, .sample_count = 10, .sample_rate_hz = 1000};
+    optic_ir_drive_t drive = {.ir_period_us = 10000, .ir_duty_on_us = 5000};
+    optic_channel_result_t first_result;
+    optic_channel_result_t second_result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_process(&frame, &drive, &first_result));
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_process(&frame, &drive, &second_result));
+
+    TEST_ASSERT_EQUAL_UINT16(first_result.peak_value, second_result.peak_value);
+    TEST_ASSERT_EQUAL_UINT16(first_result.valley_value, second_result.valley_value);
+    TEST_ASSERT_EQUAL_UINT16(first_result.amplitude, second_result.amplitude);
+}
+
 void test_optic_channel_apply_calibration_should_return_error_when_calibration_is_null(void)
 {
     optic_channel_calibrated_result_t result;
@@ -293,4 +313,21 @@ void test_optic_channel_apply_calibration_should_compensate_gain_deviation_betwe
 
     TEST_ASSERT_EQUAL_UINT16(result_without_deviation.compensated_amplitude, result_with_deviation.compensated_amplitude);
     TEST_ASSERT_EQUAL_UINT16(result_without_deviation.signal_ratio_x1000, result_with_deviation.signal_ratio_x1000);
+}
+
+/**
+ * @brief Repeating the exact same input conditions must always produce the
+ * exact same result: the calibration has no hidden/global state.
+ */
+void test_optic_channel_apply_calibration_should_be_repeatable_for_identical_input(void)
+{
+    optic_channel_calibration_t calibration = {.reference_amplitude = 1000, .gain_calibration_x1000 = 900};
+    optic_channel_calibrated_result_t first_result;
+    optic_channel_calibrated_result_t second_result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_apply_calibration(&calibration, 600, &first_result));
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_channel_apply_calibration(&calibration, 600, &second_result));
+
+    TEST_ASSERT_EQUAL_UINT16(first_result.compensated_amplitude, second_result.compensated_amplitude);
+    TEST_ASSERT_EQUAL_UINT16(first_result.signal_ratio_x1000, second_result.signal_ratio_x1000);
 }
