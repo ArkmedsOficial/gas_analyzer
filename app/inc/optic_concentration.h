@@ -13,6 +13,11 @@ typedef struct {
      * length), expressed as absorbance per percent of concentration and
      * scaled by 1000. */
     uint32_t absorption_constant_x1000;
+    /* Maximum physically valid concentration for this chamber/agent
+     * pairing, as a percentage scaled by 1000. A calculated concentration
+     * above it is reported as OPTIC_ERROR_OUT_OF_RANGE. A value of 0
+     * disables the check. */
+    uint32_t max_valid_concentration_pct_x1000;
 } optic_concentration_config_t;
 
 typedef struct {

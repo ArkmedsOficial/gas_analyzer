@@ -9,7 +9,8 @@ typedef enum {
     OPTIC_ERROR_INVALID_PARAM,
     OPTIC_ERROR_OUT_OF_PHASE,
     OPTIC_ERROR_SATURATION,
-    OPTIC_ERROR_NO_SIGNAL
+    OPTIC_ERROR_NO_SIGNAL,
+    OPTIC_ERROR_OUT_OF_RANGE
 } optic_status_t;
 
 /* Raw sample buffer for a single detector channel, spanning at least one

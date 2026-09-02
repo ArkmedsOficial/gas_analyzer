@@ -21,8 +21,12 @@ optic_status_t optic_concentration_calculate(const optic_concentration_config_t 
     double absorption_constant = (double)config->absorption_constant_x1000 / 1000.0;
 
     double concentration_pct_x1000 = (absorbance / absorption_constant) * 1000.0;
+    uint32_t concentration = (uint32_t)(concentration_pct_x1000 + 0.5);
 
-    out->concentration_pct_x1000 = (uint32_t)(concentration_pct_x1000 + 0.5);
+    if (config->max_valid_concentration_pct_x1000 != 0 && concentration > config->max_valid_concentration_pct_x1000)
+        return OPTIC_ERROR_OUT_OF_RANGE;
+
+    out->concentration_pct_x1000 = concentration;
 
     return OPTIC_OK;
 }

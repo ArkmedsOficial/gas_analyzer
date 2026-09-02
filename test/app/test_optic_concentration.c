@@ -140,3 +140,51 @@ void test_optic_concentration_calculate_should_be_repeatable_for_identical_input
 
     TEST_ASSERT_EQUAL_UINT32(first_result.concentration_pct_x1000, second_result.concentration_pct_x1000);
 }
+
+/**
+ * @brief The chamber/agent pairing is characterized by a maximum physically
+ * valid concentration; a calculated value above it means the reading is out
+ * of range (e.g. sensor drift, wrong agent assumed, or a fault upstream).
+ */
+void test_optic_concentration_calculate_should_detect_out_of_range_when_concentration_exceeds_configured_max(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 50, .max_valid_concentration_pct_x1000 = 25000};
+    optic_concentration_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_ERROR_OUT_OF_RANGE, optic_concentration_calculate(&config, 10, &result));
+}
+
+void test_optic_concentration_calculate_should_return_ok_when_concentration_is_within_configured_max(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 50, .max_valid_concentration_pct_x1000 = 25000};
+    optic_concentration_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 100, &result));
+    TEST_ASSERT_EQUAL_UINT32(20000, result.concentration_pct_x1000);
+}
+
+/**
+ * @brief A concentration exactly at the configured maximum is still valid;
+ * only exceeding it is out of range.
+ */
+void test_optic_concentration_calculate_should_return_ok_when_concentration_equals_configured_max(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 50, .max_valid_concentration_pct_x1000 = 20000};
+    optic_concentration_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 100, &result));
+    TEST_ASSERT_EQUAL_UINT32(20000, result.concentration_pct_x1000);
+}
+
+/**
+ * @brief A max_valid_concentration_pct_x1000 of 0 means the range limit is
+ * not configured, so the check is disabled.
+ */
+void test_optic_concentration_calculate_should_not_check_range_when_max_is_disabled(void)
+{
+    optic_concentration_config_t config = {.absorption_constant_x1000 = 50, .max_valid_concentration_pct_x1000 = 0};
+    optic_concentration_result_t result;
+
+    TEST_ASSERT_EQUAL(OPTIC_OK, optic_concentration_calculate(&config, 10, &result));
+    TEST_ASSERT_EQUAL_UINT32(40000, result.concentration_pct_x1000);
+}
