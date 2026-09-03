@@ -101,8 +101,10 @@
     - -:test/support
   :source:
     - app/**
+    - drv/hal/**
   :include:
     - app/**
+    - drv/hal/**
   :support:
     - test/support
   :libraries: []
@@ -145,7 +147,10 @@
   # Core configuration
   :plugins:                        # What plugins should be used by CMock?
     - :ignore
+    - :ignore_arg
+    - :return_thru_ptr
     - :callback
+    - :array
   :verbosity:  2                   # the options being 0 errors only, 1 warnings and errors, 2 normal info, 3 verbose
   :when_no_prototypes:  :warn      # the options being :ignore, :warn, or :erro
 
