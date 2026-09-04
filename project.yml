@@ -102,9 +102,11 @@
   :source:
     - app/**
     - drv/hal/**
+    - lib/**
   :include:
     - app/**
     - drv/hal/**
+    - lib/**
   :support:
     - test/support
   :libraries: []
